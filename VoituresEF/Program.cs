@@ -49,17 +49,18 @@ namespace VoituresEF
             }
         }
 
-
         private static Marque ChoisirMarque()
         {
             AfficherMarques();
-
+                
             Console.WriteLine("Quelle marque (Id)?");
             var idMarque = int.Parse(Console.ReadLine());
 
             using (var contexte = new Contexte())
             {
-                return contexte.Marques.Single(x => x.Id == idMarque);
+                return contexte.Marques
+                    .Include(x => x.Modeles)
+                    .Single(x => x.Id == idMarque);
             }
         }
 
@@ -74,7 +75,12 @@ namespace VoituresEF
                     .OrderBy(x => x.Nom).ToList();
                 foreach (var marque in marques)
                 {
-                    Console.WriteLine($"{marque.Nom} ({marque.Id})");
+                    //var nombreModeles = contexte.Modeles
+                    //    .Where(x => x.IdMarque == marque.Id)
+                    //    .Count();
+                    //Console.WriteLine($"{marque.Nom} ({marque.Id}): {nombreModeles} modèle(s)");
+
+                    Console.WriteLine($"{marque.Nom} ({marque.Id}): {marque.Modeles.Count} modèle(s)");
                 }
             }
         }
@@ -84,29 +90,16 @@ namespace VoituresEF
             Console.WriteLine();
             Console.WriteLine("> MODELES");
 
-            //var connexion = CreerConnexion();
-            //connexion.Open();
-
-            //var commande = connexion.CreateCommand();
-            //commande.CommandText =
-            //    @"SELECT M.Nom AS NomModele, S.Nom AS NomSegment
-            //      FROM Modeles M
-            //          INNER JOIN Segments S ON S.Id = M.IdSegment
-            //      WHERE IdMarque = @IdMarque";
-            //commande.Parameters.AddWithValue("@IdMarque", idMarque);
-
-            //var dataReader = commande.ExecuteReader();
-            //while (dataReader.Read())
-            //{
-            //    var indexColonneNomModele = dataReader.GetOrdinal("NomModele");
-            //    var indexColonneNomSegment = dataReader.GetOrdinal("NomSegment");
-            //    Console.Write(dataReader.GetString(indexColonneNomModele));
-            //    Console.Write(" (");
-            //    Console.Write(dataReader.GetString(indexColonneNomSegment));
-            //    Console.WriteLine(")");
-            //}
-
-            //connexion.Close();
+            using (var contexte = new Contexte())
+            {
+                var modeles = contexte.Modeles
+                    .Where(x => x.IdMarque == idMarque)
+                    .OrderBy(x => x.Nom).ToList();
+                foreach (var modele in modeles)
+                {
+                    Console.WriteLine($"{modele.Nom} - {modele.Segment.Nom} ({modele.Id})");
+                }
+            }
         }
 
         private static void CreerMarque()
@@ -135,6 +128,8 @@ namespace VoituresEF
             // 1ère option: on rattache l'objet marque 
             //  au nouveau contexte puis on précise son nouvel état
             var marque = ChoisirMarque();
+            Console.Write("Nouveau nom: ");
+            marque.Nom = Console.ReadLine();
             using (var contexte = new Contexte())
             {
                 contexte.Marques.Attach(marque);
